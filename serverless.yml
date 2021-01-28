@@ -34,13 +34,6 @@ functions:
     timeout: 900
     reservedConcurrency: 100
 
-  Lambda3:
-    handler: lambda.Lambda3::handleRequest
-    timeout: 900
-    reservedConcurrency: 100  #ReservedConcurrentExecutions(AWS)
-    events:
-      - schedule: cron(0 9 ? * 2#1 *) #cron(0/1 * ? * MON-FRI *)
-
 resources:
   Resources:
     SuperTopic:
