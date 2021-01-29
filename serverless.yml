@@ -27,7 +27,7 @@ functions:
     events:
       - sns:
           arn: !Ref SuperTopic
-          topicName: MyCustomTopic
+          topicName: SuperTopic
 
   Lambda2:
     handler: lambda.Lambda2::handleRequest
@@ -40,6 +40,9 @@ resources:
       Type: AWS::SNS::Topic
       Properties:
         TopicName: MyCustomTopic
+        Subcription:
+          - Protocol: email
+            Endpoint: jiajie.ma@thoughtworks.com
 
     S3FromLambda1Cache:
       Type: "AWS::S3::Bucket"
