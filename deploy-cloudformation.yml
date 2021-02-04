@@ -21,7 +21,7 @@ Resources:
       Runtime: java8
       FunctionName: AWSSelfLearning-dev-Lambda1
       MemorySize: 1024
-      Timeout: 6
+      Timeout: 600
       Role:
         Fn::GetAtt:
           - IamRoleLambdaExecution
@@ -96,14 +96,14 @@ Resources:
     Properties:
       Topics:
         - !Ref SuperTopic
-        PolicyDocument:
-          Statement:
-            - Sid: allow-topic-subscription
-              Effect: Allow
-              Principal: events.amazonaws.com
-              Action:
-                - SNS:Publish
-              Resource: '*'
+      PolicyDocument:
+        Statement:
+          - Sid: allow-topic-subscription
+            Effect: Allow
+            Principal: events.amazonaws.com
+            Action:
+              - SNS:Publish
+            Resource: '*'
 
   S3FromLambda1Cache:
     Type: AWS::S3::Bucket
