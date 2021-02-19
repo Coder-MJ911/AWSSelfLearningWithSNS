@@ -1,0 +1,159 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: The AWS CloudFormation template for this application
+Resources:
+  Lambda1LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/AWSLambdaAndSQS-dev-Lambda1
+
+  Lambda2LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/AWSLambdaAndSQS-dev-Lambda2
+
+  Lambda1LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: deployselflearning
+        S3Key: AWSLambdaAndSQS.jar
+      Handler: lambda.Lambda1::handleRequest
+      Runtime: java8
+      FunctionName: AWSLambdaAndSQS-dev-Lambda1
+      MemorySize: 1024
+      Timeout: 600
+      Role: //Todo: add a existing role
+    DependsOn: Lambda1LogGroup
+
+  Lambda2LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: deployselflearning
+        S3Key: AWSLambdaAndSQS.jar
+      Handler: lambda.Lambda2::handleRequest
+      Runtime: java8
+      FunctionName: AWSLambdaAndSQS-dev-Lambda2
+      MemorySize: 1024
+      Timeout: 900
+      ReservedConcurrentExecutions: 100
+      Role: arn:aws:iam::941172026838:role/just-test-jarvis
+    DependsOn: Lambda2LogGroup
+
+  SuperTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: MyCustomTopic
+      Subscription:
+        - Endpoint: jiajie.ma@thoughtworks.com
+          Protocol: email
+
+  Lambda1SnsSubscriptionSuperTopic:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref SuperTopic
+      Protocol: lambda
+      Endpoint:
+        Fn::GetAtt:
+          - Lambda1LambdaFunction
+          - Arn
+
+  Lambda1LambdaPermissionSuperTopicSNS:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName:
+        Fn::GetAtt:
+          - Lambda1LambdaFunction
+          - Arn
+      Action: lambda:InvokeFunction
+      Principal: sns.amazonaws.com
+      SourceArn: !Ref SuperTopic
+
+  OpsEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      ScheduleExpression: cron(0 9 ? * 2#1 *)
+      Description: EventRuleForSns
+      State: ENABLED
+      Targets:
+        - Arn: !Ref SuperTopic
+          Id: targetSnsV1
+
+  EventTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics:
+        - !Ref SuperTopic
+      PolicyDocument:
+        Id: MyTopicPolicy
+        Version: '2012-10-17'
+        Statement:
+          - Sid: allow-topic-subscription
+            Effect: Allow
+            Principal: 'events.amazonaws.com'
+            Action:
+              - sns:Publish
+            Resource: '*'
+
+  S3FromLambda1Cache:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: lambda1s3
+      CorsConfiguration: #描述用于 Amazon S3 存储桶中对象的跨源访问配置
+        CorsRules:
+          - AllowedHeaders:
+              - "*"
+            AllowedMethods:
+              - GET
+              - PUT
+            AllowedOrigins:
+              - "*"
+
+  S3FromLambda2Cache:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: lambda2s3
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - "*"
+            AllowedMethods:
+              - GET
+              - PUT
+            AllowedOrigins:
+              - "*"
+
+#  IamRoleLambdaExecution:
+#    Type: AWS::IAM::Role
+#    Properties:
+#      AssumeRolePolicyDocument:
+#        Version: 2012-10-17
+#        Statement:
+#          - Effect: "Allow"
+#            Principal:
+#              Service:
+#                - lambda.amazonaws.com  #specify the accounts or users who are allowed to access the resource.
+#            Action:
+#              - sts:AssumeRole #the temporary security credentials created by AssumeRole last for one hour.
+#      Path: "/"
+#
+#  RolePolicies:
+#    Type: "AWS::IAM::Policy"
+#    Properties:
+#      PolicyName: "testRole"
+#      PolicyDocument:
+#        Version: "2012-10-17"
+#        Statement:
+#          - Effect: "Allow"
+#            Action:
+#              - logs:CreateLogStream
+#              - logs:CreateLogGroup
+#              - logs:PutLogEvents
+#              - lambda:InvokeFunction
+#              - s3:PutObject
+#              - s3:GetObject
+#              - s3:DeleteObject
+#              - s3:ListBucket
+#            Resource: "*"
+#      Roles:
+#        - Ref: IamRoleLambdaExecution
